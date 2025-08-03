@@ -31,8 +31,17 @@ The OpenAPI 3.0 specification is available at:
 - **RESTful API**: Clean REST endpoints for easy integration
 - **Swagger UI**: Interactive API documentation and testing interface
 - **UnboundID LDAP SDK**: Robust LDAP client implementation
+- **SSL/TLS Support**: Configurable SSL trust settings for secure LDAP connections
+- **HTTPS Support**: Optional HTTPS for web server with self-signed or CA certificates
 
 ## Recent Updates
+
+**v1.2.0 - Configurable SSL Trust Settings**
+- Added configurable SSL trust settings for LDAP connections
+- Support for both trust-all (development) and truststore-based (production) SSL validation
+- New configuration properties for LDAP SSL behavior
+- Truststore setup script and comprehensive SSL documentation
+- Backward compatible with existing trust-all behavior
 
 **v1.1.0 - LDIF Content Type Fix**
 - Separated endpoints by content type for better Swagger UI compatibility
@@ -49,17 +58,41 @@ The OpenAPI 3.0 specification is available at:
 
 ## Building and Running
 
-### Build the application
+### Development Mode
 ```bash
+# Build the application
 mvn clean compile
-```
 
-### Run the application
-```bash
+# Run in development mode (HTTP)
 mvn spring-boot:run
+
+# Run with HTTPS enabled
+./generate-keystore.sh  # Generate self-signed certificate
+mvn spring-boot:run -Dspring.profiles.active=https
+
+# Run with both HTTP and HTTPS (dual mode)
+mvn spring-boot:run -Dspring.profiles.active=dual
 ```
 
-The application will start on port 8090 by default.
+### Standalone JAR
+```bash
+# Build standalone JAR
+mvn clean package
+
+# Run standalone JAR
+java -jar target/ldap-web-tool-0.0.1-SNAPSHOT.jar
+```
+
+The application will start on port 8090 by default. For HTTPS, it will start on port 8443.
+
+**📋 For HTTPS configuration, see:**
+- **[HTTPS_IMPLEMENTATION.md](HTTPS_IMPLEMENTATION.md)** - Complete HTTPS setup guide
+
+**📋 For deployment and configuration guides, see:**
+- **[HTTPS_IMPLEMENTATION.md](HTTPS_IMPLEMENTATION.md)** - Complete HTTPS setup guide
+- **[LDAP_SSL_CONFIGURATION.md](LDAP_SSL_CONFIGURATION.md)** - LDAP SSL/TLS configuration
+- **[STANDALONE_JAR_INSTRUCTIONS.md](STANDALONE_JAR_INSTRUCTIONS.md)** - Comprehensive deployment guide
+- **[QUICK_START.md](QUICK_START.md)** - Quick reference commands
 
 ## API Documentation
 
@@ -207,9 +240,39 @@ The API returns appropriate HTTP status codes and error messages:
 ## Configuration
 
 Edit `src/main/resources/application.properties` to customize:
-- Server port
+- Server port and SSL settings
+- LDAP SSL trust configuration
 - Logging levels
 - JSON serialization settings
+
+### LDAP SSL Configuration
+
+The application supports configurable SSL trust settings for LDAP connections:
+
+**Development Mode (Default):**
+```properties
+# Trust all SSL certificates (development/testing)
+ldap.ssl.trust-all=true
+```
+
+**Production Mode:**
+```properties
+# Use proper certificate validation
+ldap.ssl.trust-all=false
+ldap.ssl.truststore-path=classpath:truststore.jks
+ldap.ssl.truststore-password=changeit
+ldap.ssl.truststore-type=JKS
+ldap.ssl.hostname-verification=true
+```
+
+**Setup Truststore:**
+```bash
+# Use helper script to set up truststore
+./setup-ldap-truststore.sh import-from-server ldap.example.com 636
+```
+
+**📋 For complete SSL configuration guide, see:**
+- **[LDAP_SSL_CONFIGURATION.md](LDAP_SSL_CONFIGURATION.md)** - Comprehensive SSL setup guide
 
 ## Testing
 
@@ -232,7 +295,8 @@ mvn test
 ## Security Notes
 
 - This application passes LDAP credentials through to the target LDAP server
-- Use HTTPS in production to protect credentials in transit
+- **Use HTTPS in production** to protect credentials in transit (see [HTTPS_IMPLEMENTATION.md](HTTPS_IMPLEMENTATION.md))
+- For LDAP connections, use `ldaps://` URIs for SSL/TLS encrypted connections
 - Consider implementing additional security measures like rate limiting
 - The application does not store or cache credentials
 
